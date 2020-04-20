@@ -8,6 +8,10 @@ import { NotFoundException } from '@nestjs/common';
 const mockTaskRepository = () => ({
     getTasks: jest.fn(),
     findOne: jest.fn(),
+    createTask: jest.fn(),
+    delete: jest.fn(),
+    getTaskById: jest.fn(),
+    save: jest.fn(),
 });
 
 const mockUser = {
@@ -63,5 +67,41 @@ describe('Tasks service', () => {
             expect(tasksService.getTaskById(1, mockUser)).rejects.toThrow(NotFoundException);
         });
     });
-    
+
+    describe('createTask', () => {
+        it('should create new task and return the result', async () => {
+            taskRepository.createTask.mockResolvedValue(task);
+            const result = await tasksService.createTask(task, mockUser);
+            expect(taskRepository.createTask).toHaveBeenCalledWith(task, mockUser);
+            expect(result).toEqual(task);
+        });
+    });
+
+    describe('deleteTask', () => {
+        it('should delete a task', async () => {
+            taskRepository.delete.mockResolvedValue({affected: 1});
+            await tasksService.deleteTask(1, mockUser);
+            expect(taskRepository.delete).toHaveBeenCalledWith({ id: 1, userId: 1 });
+        });
+
+        it('throws an error when task is no found', async () => {
+            taskRepository.delete.mockResolvedValue({affected: 0});
+            expect(tasksService.deleteTask(1, mockUser)).rejects.toThrow(NotFoundException);
+        });
+    });
+
+    describe('updateTaskStatus', () => {
+        it('should update task with status', async () => {
+            const id = 1;
+            const status = TaskStatus.DONE;
+            tasksService.getTaskById = jest.fn().mockResolvedValue({
+                status,
+                save: jest.fn().mockResolvedValue(true),
+            });
+
+            const result = await tasksService.updateTaskStatus(id, status, mockUser);
+            expect(tasksService.getTaskById).toHaveBeenCalled();
+            expect(result.save).toHaveBeenCalled();
+        });
+    });
 });
